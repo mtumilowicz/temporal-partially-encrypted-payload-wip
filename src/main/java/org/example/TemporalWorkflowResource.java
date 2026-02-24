@@ -1,8 +1,16 @@
 package org.example;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
+import io.temporal.api.enums.v1.WorkflowIdConflictPolicy;
+import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -15,7 +23,10 @@ import org.example.temporal.ExampleWorkflowInput;
 import org.example.temporal.ExampleWorkflowOutput;
 import org.example.temporal.codec.SecureString;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Path("/temporal")
@@ -32,12 +43,15 @@ public class TemporalWorkflowResource {
         WorkflowOptions options = WorkflowOptions.newBuilder()
                 .setTaskQueue("<default>")
                 .setWorkflowId("example-" + UUID.randomUUID())
+                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
+                .setWorkflowIdConflictPolicy(WorkflowIdConflictPolicy.WORKFLOW_ID_CONFLICT_POLICY_FAIL)
                 .build();
 
         ExampleWorkflow workflow = workflowClient.newWorkflowStub(ExampleWorkflow.class, options);
         ExampleWorkflowInput workflowInput = new ExampleWorkflowInput(
                 request.name(),
-                new SecureString(request.apiKey().toCharArray())
+                new SecureString(request.apiKey().toCharArray()),
+                request.parameters()
         );
         WorkflowClient.start(workflow::run, workflowInput);
         ExampleWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(ExampleWorkflowOutput.class);
@@ -63,7 +77,9 @@ public class TemporalWorkflowResource {
 
     public record ExampleWorkflowRequest(
             String name,
-            String apiKey
+            String apiKey,
+            @JsonDeserialize(using = SecretParametersDeserializer.class)
+            Map<String, Object> parameters
     ) {
     }
 
@@ -74,5 +90,30 @@ public class TemporalWorkflowResource {
             String newApiKey,
             String date
     ) {
+    }
+
+    static final class SecretParametersDeserializer extends JsonDeserializer<Map<String, Object>> {
+        @Override
+        public Map<String, Object> deserialize(JsonParser parser, DeserializationContext context)
+                throws IOException {
+            ObjectCodec codec = parser.getCodec();
+            JsonNode root = codec.readTree(parser);
+            if (!root.isObject()) {
+                return context.reportInputMismatch(Map.class, "parameters must be a JSON object");
+            }
+
+            Map<String, Object> parameters = new LinkedHashMap<>();
+            for (Map.Entry<String, JsonNode> property : root.properties()) {
+                String key = property.getKey();
+                JsonNode value = property.getValue();
+
+                if (key.startsWith("secret") && value.isTextual()) {
+                    parameters.put(key, new SecureString(value.textValue().toCharArray()));
+                } else {
+                    parameters.put(key, codec.treeToValue(value, Object.class));
+                }
+            }
+            return parameters;
+        }
     }
 }

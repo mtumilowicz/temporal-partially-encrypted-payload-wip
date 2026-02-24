@@ -1,3 +1,10 @@
 curl -X POST 'http://localhost:8080/temporal/example' \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Temporal","apiKey":"sk_test_1234567890"}'
+  -d '{
+    "name": "Temporal",
+    "apiKey": "sk_test_1234567890",
+    "parameters": {
+      "source": "curl",
+      "secretToken": "param_secret"
+    }
+  }'
