@@ -2,14 +2,17 @@ package org.example
 
 import io.quarkus.test.junit.QuarkusTest
 import io.restassured.RestAssured
-import spock.lang.Specification
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
 @QuarkusTest
-class TemporalWorkflowResourceIT extends Specification {
+class TemporalWorkflowResourceIT {
 
-    def 'returns example workflow response'() {
-        when:
-        def body = RestAssured.given()
+    @Test
+    void 'returns example workflow response'() {
+        Map body = RestAssured.given()
                 .contentType('application/json')
                 .body('{"name":"Temporal","apiKey":"sk_test_1234567890"}')
                 .when()
@@ -19,13 +22,10 @@ class TemporalWorkflowResourceIT extends Specification {
                 .extract()
                 .as(Map)
 
-        then:
-        with(body) {
-            oldName == 'Temporal'
-            newName == 'new_name_hardcoded'
-            oldApiKey == 'sk_test_1234567890'
-            newApiKey == 'sk_new_hardcoded_123'
-            date
-        }
+        assertEquals('Temporal', body.oldName)
+        assertEquals('new_name_hardcoded', body.newName)
+        assertEquals('sk_test_1234567890', body.oldApiKey)
+        assertEquals('sk_new_hardcoded_123', body.newApiKey)
+        assertNotNull(body.date)
     }
 }

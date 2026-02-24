@@ -10,13 +10,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Objects;
 
 @ApplicationScoped
 public class PartialPayloadCrypto {
 
     private static final String PREFIX = "enc:v1:";
     private static final int KEY_LENGTH_BYTES = 32;
-    private static final byte[] EMPTY_AAD = new byte[0];
 
     private final Aead aead;
 
@@ -34,10 +34,11 @@ public class PartialPayloadCrypto {
         }
     }
 
-    public String encryptFromChars(char[] plainChars) {
+    public String encryptFromChars(char[] plainChars, byte[] aad) {
         try {
+            validateAad(aad);
             byte[] plainBytes = new String(plainChars).getBytes(StandardCharsets.UTF_8);
-            byte[] cipherText = aead.encrypt(plainBytes, EMPTY_AAD);
+            byte[] cipherText = aead.encrypt(plainBytes, aad);
             Arrays.fill(plainBytes, (byte) 0);
             return PREFIX + Base64.getEncoder().encodeToString(cipherText);
         } catch (GeneralSecurityException e) {
@@ -45,18 +46,26 @@ public class PartialPayloadCrypto {
         }
     }
 
-    public char[] decryptToChars(String token) {
+    public char[] decryptToChars(String token, byte[] aad) {
         if (!token.startsWith(PREFIX)) {
             throw new IllegalArgumentException("Encrypted field has unexpected format");
         }
         try {
+            validateAad(aad);
             byte[] cipherText = Base64.getDecoder().decode(token.substring(PREFIX.length()));
-            byte[] plainBytes = aead.decrypt(cipherText, EMPTY_AAD);
+            byte[] plainBytes = aead.decrypt(cipherText, aad);
             char[] chars = new String(plainBytes, StandardCharsets.UTF_8).toCharArray();
             Arrays.fill(plainBytes, (byte) 0);
             return chars;
         } catch (IllegalArgumentException | GeneralSecurityException e) {
             throw new IllegalStateException("Failed to decrypt payload field", e);
+        }
+    }
+
+    private static void validateAad(byte[] aad) {
+        Objects.requireNonNull(aad, "AAD must not be null");
+        if (aad.length == 0) {
+            throw new IllegalArgumentException("AAD must not be empty");
         }
     }
 }
