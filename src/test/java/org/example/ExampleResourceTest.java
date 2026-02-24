@@ -1,6 +1,5 @@
 package org.example;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.temporal.common.converter.DataConverter;
 import io.quarkus.test.InjectMock;
@@ -80,9 +79,9 @@ class ExampleResourceTest {
 
         io.temporal.api.common.v1.Payloads payloads = dataConverter.toPayloads(input).orElseThrow();
 
-        JsonNode payloadJson = payloadAsJson(payloads);
-        assertEquals(plainName, payloadJson.get("name").asText());
-        String encryptedApiKey = payloadJson.get("apiKey").asText();
+        SerializedGreetingWorkflowInput payload = payloadAsInput(payloads);
+        assertEquals(plainName, payload.name());
+        String encryptedApiKey = payload.apiKey();
         assertTrue(encryptedApiKey.startsWith(ENCRYPTED_PREFIX));
         assertFalse(encryptedApiKey.contains(plainSecret));
 
@@ -113,21 +112,24 @@ class ExampleResourceTest {
 
         io.temporal.api.common.v1.Payloads payloads = dataConverter.toPayloads(input).orElseThrow();
 
-        JsonNode payloadJson = payloadAsJson(payloads);
-        assertEquals(plainName, payloadJson.get("name").asText());
-        String encryptedApiKey = payloadJson.get("apiKey").asText();
+        SerializedGreetingWorkflowInput payload = payloadAsInput(payloads);
+        assertEquals(plainName, payload.name());
+        String encryptedApiKey = payload.apiKey();
         assertNotNull(encryptedApiKey);
         assertTrue(encryptedApiKey.startsWith(ENCRYPTED_PREFIX));
         assertFalse(encryptedApiKey.contains(plainSecret));
     }
 
-    private JsonNode payloadAsJson(io.temporal.api.common.v1.Payloads payloads) {
+    private SerializedGreetingWorkflowInput payloadAsInput(io.temporal.api.common.v1.Payloads payloads) {
         String json = payloads.getPayloads(0).getData().toStringUtf8();
         try {
-            return objectMapper.readTree(json);
+            return objectMapper.readValue(json, SerializedGreetingWorkflowInput.class);
         } catch (IOException e) {
             throw new AssertionError("Payload is not valid JSON: " + json, e);
         }
+    }
+
+    private record SerializedGreetingWorkflowInput(String name, String apiKey) {
     }
 
 }
