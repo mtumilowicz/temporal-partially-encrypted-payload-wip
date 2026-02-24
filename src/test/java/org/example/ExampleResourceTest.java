@@ -1,5 +1,7 @@
 package org.example;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.temporal.common.converter.DataConverter;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -11,19 +13,26 @@ import org.example.temporal.codec.SecureString;
 
 import jakarta.inject.Inject;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class ExampleResourceTest {
+    private static final String ENCRYPTED_PREFIX = "enc:v1:";
+
     @Inject
     DataConverter dataConverter;
+
+    @Inject
+    ObjectMapper objectMapper;
 
     @InjectMock
     UtcTimestampProvider utcTimestampProvider;
@@ -69,17 +78,17 @@ class ExampleResourceTest {
                 new SecureString(plainSecret.toCharArray())
         );
 
-        Optional<io.temporal.api.common.v1.Payloads> payloadsOpt = dataConverter.toPayloads(input);
-        assertTrue(payloadsOpt.isPresent());
+        io.temporal.api.common.v1.Payloads payloads = dataConverter.toPayloads(input).orElseThrow();
 
-        String serialized = payloadsOpt.get().getPayloads(0).getData().toStringUtf8();
-        assertTrue(serialized.contains("\"name\":\"" + plainName + "\""));
-        assertFalse(serialized.contains(plainSecret));
-        assertTrue(serialized.contains("enc:v1:"));
+        JsonNode payloadJson = payloadAsJson(payloads);
+        assertEquals(plainName, payloadJson.get("name").asText());
+        String encryptedApiKey = payloadJson.get("apiKey").asText();
+        assertTrue(encryptedApiKey.startsWith(ENCRYPTED_PREFIX));
+        assertFalse(encryptedApiKey.contains(plainSecret));
 
         GreetingWorkflowInput decoded = dataConverter.fromPayloads(
                 0,
-                payloadsOpt,
+                java.util.Optional.of(payloads),
                 GreetingWorkflowInput.class,
                 GreetingWorkflowInput.class
         );
@@ -102,14 +111,23 @@ class ExampleResourceTest {
                 new SecureString(plainSecret.toCharArray())
         );
 
-        Optional<io.temporal.api.common.v1.Payloads> payloadsOpt = dataConverter.toPayloads(input);
-        assertTrue(payloadsOpt.isPresent());
+        io.temporal.api.common.v1.Payloads payloads = dataConverter.toPayloads(input).orElseThrow();
 
-        String serialized = payloadsOpt.get().getPayloads(0).getData().toStringUtf8();
-        assertTrue(serialized.contains("\"name\":\"" + plainName + "\""));
-        assertFalse(serialized.contains("\"name\":\"enc:v1:"));
-        assertFalse(serialized.contains(plainSecret));
-        assertTrue(serialized.contains("enc:v1:"));
+        JsonNode payloadJson = payloadAsJson(payloads);
+        assertEquals(plainName, payloadJson.get("name").asText());
+        String encryptedApiKey = payloadJson.get("apiKey").asText();
+        assertNotNull(encryptedApiKey);
+        assertTrue(encryptedApiKey.startsWith(ENCRYPTED_PREFIX));
+        assertFalse(encryptedApiKey.contains(plainSecret));
+    }
+
+    private JsonNode payloadAsJson(io.temporal.api.common.v1.Payloads payloads) {
+        String json = payloads.getPayloads(0).getData().toStringUtf8();
+        try {
+            return objectMapper.readTree(json);
+        } catch (IOException e) {
+            throw new AssertionError("Payload is not valid JSON: " + json, e);
+        }
     }
 
 }
