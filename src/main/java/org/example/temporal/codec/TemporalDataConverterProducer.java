@@ -42,10 +42,13 @@ public class TemporalDataConverterProducer {
             @Override
             public SecureString deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
                 String raw = p.getValueAsString();
-                if (raw.startsWith(TOKEN_PREFIX)) {
-                    return new SecureString(crypto.decryptToChars(raw));
+                if (raw == null) {
+                    throw new IllegalArgumentException("SecureString payload is null");
                 }
-                return new SecureString(raw.toCharArray());
+                if (!raw.startsWith(TOKEN_PREFIX)) {
+                    throw new IllegalArgumentException("SecureString payload is not encrypted");
+                }
+                return new SecureString(crypto.decryptToChars(raw));
             }
         });
         mapper.registerModule(secureModule);
@@ -58,7 +61,7 @@ public class TemporalDataConverterProducer {
         @AllowUnsafeChars("encrypting secure value before Temporal payload serialization")
         char[] chars = value.unsafeChars();
         try {
-            return crypto.encrypt(chars);
+            return crypto.encryptFromChars(chars);
         } finally {
             Arrays.fill(chars, '\0');
         }

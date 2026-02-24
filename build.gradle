@@ -32,20 +32,11 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-compileJava {
-    options.encoding = 'UTF-8'
-    options.compilerArgs << '-parameters'
-    options.compilerArgs << '-XDaddTypeAnnotationsToSymbol=true'
-    options.errorprone.error('RestrictedApi')
-}
-
-compileTestJava {
-    options.encoding = 'UTF-8'
-    options.compilerArgs << '-XDaddTypeAnnotationsToSymbol=true'
-    options.errorprone.error('RestrictedApi')
-}
-
 tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    if (!options.compilerArgs.contains('-parameters')) {
+        options.compilerArgs << '-parameters'
+    }
     if (!options.compilerArgs.contains('-XDaddTypeAnnotationsToSymbol=true')) {
         options.compilerArgs << '-XDaddTypeAnnotationsToSymbol=true'
     }

@@ -34,17 +34,7 @@ public class PartialPayloadCrypto {
         }
     }
 
-    public String encrypt(String plainText) {
-        if (plainText == null || plainText.isBlank()) {
-            return null;
-        }
-        return encrypt(plainText.toCharArray());
-    }
-
-    public String encrypt(char[] plainChars) {
-        if (plainChars == null || plainChars.length == 0) {
-            return null;
-        }
+    public String encryptFromChars(char[] plainChars) {
         try {
             byte[] plainBytes = new String(plainChars).getBytes(StandardCharsets.UTF_8);
             byte[] cipherText = aead.encrypt(plainBytes, EMPTY_AAD);
@@ -55,15 +45,7 @@ public class PartialPayloadCrypto {
         }
     }
 
-    public String decrypt(String token) {
-        char[] plain = decryptToChars(token);
-        return plain == null ? null : new String(plain);
-    }
-
     public char[] decryptToChars(String token) {
-        if (token == null || token.isBlank()) {
-            return null;
-        }
         if (!token.startsWith(PREFIX)) {
             throw new IllegalArgumentException("Encrypted field has unexpected format");
         }
