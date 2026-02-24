@@ -7,8 +7,8 @@ import org.example.temporal.codec.SensitiveString;
 public class ApiKeyActivityImpl implements ApiKeyActivity {
 
     @Override
-    public ApiKeyProcessingResult rotateApiKey(SensitiveString oldApiKey) {
+    public RotateResult rotateApiKey(SensitiveString oldApiKey) {
         SensitiveString newApiKey = new SensitiveString("sk_new_hardcoded_123");
-        return new ApiKeyProcessingResult(oldApiKey, newApiKey);
+        return new RotateResult(oldApiKey, newApiKey);
     }
 }

@@ -4,9 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 class ExampleResourceTest {
@@ -32,9 +30,8 @@ class ExampleResourceTest {
                 .when().post("/temporal/greeting")
                 .then()
                 .statusCode(200)
-                .body("workflowId", containsString("greeting-"))
-                .body("runId", notNullValue())
-                .body("name", is("Temporal"))
+                .body("oldName", is("Temporal"))
+                .body("newName", is("new_name_hardcoded"))
                 .body("oldApiKey", is("sk_test_1234567890"))
                 .body("newApiKey", is("sk_new_hardcoded_123"));
     }

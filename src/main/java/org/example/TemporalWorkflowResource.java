@@ -1,6 +1,5 @@
 package org.example;
 
-import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
@@ -38,15 +37,14 @@ public class TemporalWorkflowResource {
                 request.name(),
                 new SensitiveString(request.apiKey())
         );
-        WorkflowExecution execution = WorkflowClient.start(workflow::composeGreeting, workflowInput);
+        WorkflowClient.start(workflow::composeGreeting, workflowInput);
         GreetingWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(GreetingWorkflowOutput.class);
 
         return new GreetingWorkflowResponse(
-                execution.getWorkflowId(),
-                execution.getRunId(),
                 request.name(),
-                output.oldApiKey() == null ? null : output.oldApiKey().value(),
-                output.newApiKey() == null ? null : output.newApiKey().value()
+                output.newName(),
+                output.rotateResult().oldApiKey() == null ? null : output.rotateResult().oldApiKey().value(),
+                output.rotateResult().newApiKey() == null ? null : output.rotateResult().newApiKey().value()
         );
     }
 
@@ -57,9 +55,8 @@ public class TemporalWorkflowResource {
     }
 
     public record GreetingWorkflowResponse(
-            String workflowId,
-            String runId,
-            String name,
+            String oldName,
+            String newName,
             String oldApiKey,
             String newApiKey
     ) {

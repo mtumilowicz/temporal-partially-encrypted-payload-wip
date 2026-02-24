@@ -8,5 +8,5 @@ import org.example.temporal.codec.SensitiveString;
 public interface ApiKeyActivity {
 
     @ActivityMethod
-    ApiKeyProcessingResult rotateApiKey(SensitiveString oldApiKey);
+    RotateResult rotateApiKey(SensitiveString oldApiKey);
 }

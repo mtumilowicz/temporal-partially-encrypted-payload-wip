@@ -9,6 +9,11 @@ import java.time.Duration;
 @TemporalWorkflow(workers = "<default>")
 public class GreetingWorkflowImpl implements GreetingWorkflow {
 
+    private final NameActivity nameActivity = Workflow.newActivityStub(
+            NameActivity.class,
+            ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(5)).build()
+    );
+
     private final ApiKeyActivity apiKeyActivity = Workflow.newActivityStub(
             ApiKeyActivity.class,
             ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(5)).build()
@@ -16,11 +21,12 @@ public class GreetingWorkflowImpl implements GreetingWorkflow {
 
     @Override
     public GreetingWorkflowOutput composeGreeting(GreetingWorkflowInput input) {
-        ApiKeyProcessingResult apiKeyResult = apiKeyActivity.rotateApiKey(input.apiKey());
+        String newName = nameActivity.generateNewName(input.name());
+        RotateResult rotateResult = apiKeyActivity.rotateApiKey(input.apiKey());
 
         return new GreetingWorkflowOutput(
-                apiKeyResult.oldApiKey(),
-                apiKeyResult.newApiKey()
+                newName,
+                rotateResult
         );
     }
 }
