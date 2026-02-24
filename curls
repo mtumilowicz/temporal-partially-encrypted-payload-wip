@@ -1,0 +1,3 @@
+curl -X POST 'http://localhost:8080/temporal/greeting' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Temporal","repeatCount":2}'
