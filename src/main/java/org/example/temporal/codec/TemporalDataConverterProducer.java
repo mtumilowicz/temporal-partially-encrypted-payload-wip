@@ -32,7 +32,7 @@ public class TemporalDataConverterProducer {
         secureModule.addSerializer(SecureString.class, new JsonSerializer<>() {
             @Override
             public void serialize(SecureString value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-                String encrypted = crypto.encrypt(value.chars());
+                String encrypted = crypto.encrypt(value.unsafeChars());
                 gen.writeString(encrypted);
             }
         });

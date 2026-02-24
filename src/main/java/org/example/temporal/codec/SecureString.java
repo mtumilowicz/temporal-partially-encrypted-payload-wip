@@ -9,12 +9,8 @@ public final class SecureString {
         this.value = Arrays.copyOf(value, value.length);
     }
 
-    public char[] chars() {
+    public char[] unsafeChars() {
         return Arrays.copyOf(value, value.length);
-    }
-
-    public String asString() {
-        return new String(value);
     }
 
     @Override

@@ -43,8 +43,8 @@ public class TemporalWorkflowResource {
         return new GreetingWorkflowResponse(
                 request.name(),
                 output.newName(),
-                output.rotateResult().oldApiKey().asString(),
-                output.rotateResult().newApiKey().asString(),
+                new String(output.rotateResult().oldApiKey().unsafeChars()),
+                new String(output.rotateResult().newApiKey().unsafeChars()),
                 output.rotateResult().date()
         );
     }
