@@ -11,15 +11,12 @@ import java.security.NoSuchAlgorithmException;
 public class ApiKeyActivityImpl implements ApiKeyActivity {
 
     @Override
-    public ApiKeyProcessingResult processApiKey(SensitiveString apiKey, boolean includeSensitiveOutput) {
+    public ApiKeyProcessingResult processApiKey(SensitiveString apiKey) {
         String plainApiKey = apiKey.value();
         String fingerprint = fingerprint(plainApiKey);
         String sensitiveOutput = "apiKey.last4=" + last4(plainApiKey) + ";apiKey.length=" + plainApiKey.length();
 
-        if (includeSensitiveOutput) {
-            return new ApiKeyProcessingResult(fingerprint, new SensitiveString(sensitiveOutput));
-        }
-        return new ApiKeyProcessingResult(fingerprint, null);
+        return new ApiKeyProcessingResult(fingerprint, new SensitiveString(sensitiveOutput));
     }
 
     private static String fingerprint(String value) {

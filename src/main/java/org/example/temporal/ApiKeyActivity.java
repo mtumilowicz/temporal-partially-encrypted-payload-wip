@@ -8,5 +8,5 @@ import org.example.temporal.codec.SensitiveString;
 public interface ApiKeyActivity {
 
     @ActivityMethod
-    ApiKeyProcessingResult processApiKey(SensitiveString apiKey, boolean includeSensitiveOutput);
+    ApiKeyProcessingResult processApiKey(SensitiveString apiKey);
 }

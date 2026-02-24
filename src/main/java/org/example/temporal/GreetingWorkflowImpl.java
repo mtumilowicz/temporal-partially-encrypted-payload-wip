@@ -22,10 +22,7 @@ public class GreetingWorkflowImpl implements GreetingWorkflow {
     @Override
     public GreetingWorkflowOutput composeGreeting(GreetingWorkflowInput input) {
         String output = greetingActivity.buildGreeting(input.name(), input.repeatCount());
-        ApiKeyProcessingResult apiKeyResult = apiKeyActivity.processApiKey(
-                input.apiKey(),
-                input.includeSensitiveOutput()
-        );
+        ApiKeyProcessingResult apiKeyResult = apiKeyActivity.processApiKey(input.apiKey());
 
         return new GreetingWorkflowOutput(
                 output,

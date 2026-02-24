@@ -27,8 +27,7 @@ class ExampleResourceTest {
                         {
                           "name": "Temporal",
                           "repeatCount": 2,
-                          "apiKey": "sk_test_1234567890",
-                          "includeSensitiveOutput": true
+                          "apiKey": "sk_test_1234567890"
                         }
                         """)
                 .when().post("/temporal/greeting")

@@ -37,8 +37,7 @@ public class TemporalWorkflowResource {
         GreetingWorkflowInput workflowInput = new GreetingWorkflowInput(
                 request.name(),
                 request.repeatCount(),
-                new SensitiveString(request.apiKey()),
-                request.includeSensitiveOutput()
+                new SensitiveString(request.apiKey())
         );
         WorkflowExecution execution = WorkflowClient.start(workflow::composeGreeting, workflowInput);
         GreetingWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(GreetingWorkflowOutput.class);
@@ -57,8 +56,7 @@ public class TemporalWorkflowResource {
     public record GreetingWorkflowRequest(
             String name,
             int repeatCount,
-            String apiKey,
-            boolean includeSensitiveOutput
+            String apiKey
     ) {
     }
 
