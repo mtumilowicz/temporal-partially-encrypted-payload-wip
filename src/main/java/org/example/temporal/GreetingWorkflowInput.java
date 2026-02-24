@@ -1,9 +1,9 @@
 package org.example.temporal;
 
-import org.example.temporal.codec.SensitiveString;
+import org.example.temporal.codec.SecureString;
 
 public record GreetingWorkflowInput(
         String name,
-        SensitiveString apiKey
+        SecureString apiKey
 ) {
 }

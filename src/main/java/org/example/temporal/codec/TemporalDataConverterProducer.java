@@ -28,10 +28,10 @@ public class TemporalDataConverterProducer {
     DataConverter temporalDataConverter(PartialPayloadCrypto crypto) {
         ObjectMapper mapper = JacksonJsonPayloadConverter.newDefaultObjectMapper();
 
-        SimpleModule sensitiveModule = new SimpleModule("temporal-sensitive-field-encryption");
-        sensitiveModule.addSerializer(SensitiveString.class, new JsonSerializer<>() {
+        SimpleModule secureModule = new SimpleModule("temporal-secure-field-encryption");
+        secureModule.addSerializer(SecureString.class, new JsonSerializer<>() {
             @Override
-            public void serialize(SensitiveString value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            public void serialize(SecureString value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
                 if (value == null || value.value() == null) {
                     gen.writeNull();
                     return;
@@ -44,20 +44,20 @@ public class TemporalDataConverterProducer {
                 gen.writeString(encrypted);
             }
         });
-        sensitiveModule.addDeserializer(SensitiveString.class, new JsonDeserializer<>() {
+        secureModule.addDeserializer(SecureString.class, new JsonDeserializer<>() {
             @Override
-            public SensitiveString deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            public SecureString deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
                 String raw = p.getValueAsString();
                 if (raw == null) {
-                    return new SensitiveString(null);
+                    return new SecureString(null);
                 }
                 if (raw.startsWith(TOKEN_PREFIX)) {
-                    return new SensitiveString(crypto.decrypt(raw));
+                    return new SecureString(crypto.decrypt(raw));
                 }
-                return new SensitiveString(raw);
+                return new SecureString(raw);
             }
         });
-        mapper.registerModule(sensitiveModule);
+        mapper.registerModule(secureModule);
 
         return DefaultDataConverter.newDefaultInstance()
                 .withPayloadConverterOverrides(new JacksonJsonPayloadConverter(mapper));

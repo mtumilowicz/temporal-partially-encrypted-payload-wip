@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 class ExampleResourceTest {
@@ -33,7 +34,8 @@ class ExampleResourceTest {
                 .body("oldName", is("Temporal"))
                 .body("newName", is("new_name_hardcoded"))
                 .body("oldApiKey", is("sk_test_1234567890"))
-                .body("newApiKey", is("sk_new_hardcoded_123"));
+                .body("newApiKey", is("sk_new_hardcoded_123"))
+                .body("date", notNullValue());
     }
 
 }

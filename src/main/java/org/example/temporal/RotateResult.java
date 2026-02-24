@@ -1,9 +1,10 @@
 package org.example.temporal;
 
-import org.example.temporal.codec.SensitiveString;
+import org.example.temporal.codec.SecureString;
 
 public record RotateResult(
-        SensitiveString oldApiKey,
-        SensitiveString newApiKey
+        SecureString oldApiKey,
+        SecureString newApiKey,
+        String date
 ) {
 }

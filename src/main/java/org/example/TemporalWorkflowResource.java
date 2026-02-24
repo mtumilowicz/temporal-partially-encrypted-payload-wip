@@ -12,7 +12,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.example.temporal.GreetingWorkflow;
 import org.example.temporal.GreetingWorkflowInput;
 import org.example.temporal.GreetingWorkflowOutput;
-import org.example.temporal.codec.SensitiveString;
+import org.example.temporal.codec.SecureString;
 
 import java.util.UUID;
 
@@ -35,7 +35,7 @@ public class TemporalWorkflowResource {
         GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class, options);
         GreetingWorkflowInput workflowInput = new GreetingWorkflowInput(
                 request.name(),
-                new SensitiveString(request.apiKey())
+                new SecureString(request.apiKey())
         );
         WorkflowClient.start(workflow::composeGreeting, workflowInput);
         GreetingWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(GreetingWorkflowOutput.class);
@@ -44,7 +44,8 @@ public class TemporalWorkflowResource {
                 request.name(),
                 output.newName(),
                 output.rotateResult().oldApiKey() == null ? null : output.rotateResult().oldApiKey().value(),
-                output.rotateResult().newApiKey() == null ? null : output.rotateResult().newApiKey().value()
+                output.rotateResult().newApiKey() == null ? null : output.rotateResult().newApiKey().value(),
+                output.rotateResult().date()
         );
     }
 
@@ -58,7 +59,8 @@ public class TemporalWorkflowResource {
             String oldName,
             String newName,
             String oldApiKey,
-            String newApiKey
+            String newApiKey,
+            String date
     ) {
     }
 }

@@ -2,11 +2,11 @@ package org.example.temporal;
 
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
-import org.example.temporal.codec.SensitiveString;
+import org.example.temporal.codec.SecureString;
 
 @ActivityInterface
 public interface ApiKeyActivity {
 
     @ActivityMethod
-    RotateResult rotateApiKey(SensitiveString oldApiKey);
+    RotateResult rotateApiKey(SecureString oldApiKey);
 }
