@@ -10,9 +10,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.example.security.AllowUnsafeChars;
-import org.example.temporal.GreetingWorkflow;
-import org.example.temporal.GreetingWorkflowInput;
-import org.example.temporal.GreetingWorkflowOutput;
+import org.example.temporal.ExampleWorkflow;
+import org.example.temporal.ExampleWorkflowInput;
+import org.example.temporal.ExampleWorkflowOutput;
 import org.example.temporal.codec.SecureString;
 
 import java.util.Arrays;
@@ -27,22 +27,22 @@ public class TemporalWorkflowResource {
     WorkflowClient workflowClient;
 
     @POST
-    @Path("/greeting")
-    public GreetingWorkflowResponse startGreetingWorkflow(GreetingWorkflowRequest request) {
+    @Path("/example")
+    public ExampleWorkflowResponse startExampleWorkflow(ExampleWorkflowRequest request) {
         WorkflowOptions options = WorkflowOptions.newBuilder()
                 .setTaskQueue("<default>")
-                .setWorkflowId("greeting-" + UUID.randomUUID())
+                .setWorkflowId("example-" + UUID.randomUUID())
                 .build();
 
-        GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class, options);
-        GreetingWorkflowInput workflowInput = new GreetingWorkflowInput(
+        ExampleWorkflow workflow = workflowClient.newWorkflowStub(ExampleWorkflow.class, options);
+        ExampleWorkflowInput workflowInput = new ExampleWorkflowInput(
                 request.name(),
                 new SecureString(request.apiKey().toCharArray())
         );
-        WorkflowClient.start(workflow::composeGreeting, workflowInput);
-        GreetingWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(GreetingWorkflowOutput.class);
+        WorkflowClient.start(workflow::run, workflowInput);
+        ExampleWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(ExampleWorkflowOutput.class);
 
-        return new GreetingWorkflowResponse(
+        return new ExampleWorkflowResponse(
                 request.name(),
                 output.newName(),
                 toPlainString(output.rotateResult().oldApiKey()),
@@ -61,13 +61,13 @@ public class TemporalWorkflowResource {
         }
     }
 
-    public record GreetingWorkflowRequest(
+    public record ExampleWorkflowRequest(
             String name,
             String apiKey
     ) {
     }
 
-    public record GreetingWorkflowResponse(
+    public record ExampleWorkflowResponse(
             String oldName,
             String newName,
             String oldApiKey,

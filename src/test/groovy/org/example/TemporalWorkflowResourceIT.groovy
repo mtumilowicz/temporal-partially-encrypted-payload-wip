@@ -12,12 +12,12 @@ import static org.hamcrest.Matchers.notNullValue
 class TemporalWorkflowResourceIT {
 
     @Test
-    void returnsGreetingWorkflowResponse() {
+    void returnsExampleWorkflowResponse() {
         RestAssured.given()
                 .contentType('application/json')
                 .body('{"name":"Temporal","apiKey":"sk_test_1234567890"}')
                 .when()
-                .post('/temporal/greeting')
+                .post('/temporal/example')
                 .then()
                 .statusCode(200)
                 .body('oldName', equalTo('Temporal'))

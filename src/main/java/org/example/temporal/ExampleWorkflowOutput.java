@@ -1,6 +1,6 @@
 package org.example.temporal;
 
-public record GreetingWorkflowOutput(
+public record ExampleWorkflowOutput(
         String newName,
         RotateResult rotateResult
 ) {

@@ -5,7 +5,7 @@ import io.temporal.api.common.v1.Payloads
 import io.temporal.common.converter.DataConverter
 import org.example.security.AllowUnsafeChars
 import org.example.security.PartialPayloadCrypto
-import org.example.temporal.GreetingWorkflowInput
+import org.example.temporal.ExampleWorkflowInput
 import spock.lang.Specification
 
 import java.util.Arrays
@@ -24,14 +24,14 @@ class TemporalDataConverterTest extends Specification {
         given:
         String plainSecret = 'sk_test_roundtrip_secret'
         String plainName = 'Temporal'
-        GreetingWorkflowInput input = new GreetingWorkflowInput(
+        ExampleWorkflowInput input = new ExampleWorkflowInput(
                 plainName,
                 new SecureString(plainSecret.toCharArray())
         )
 
         when:
         Payloads payloads = dataConverter.toPayloads(input).orElseThrow()
-        SerializedGreetingWorkflowInput payload = payloadAsInput(payloads)
+        SerializedExampleWorkflowInput payload = payloadAsInput(payloads)
 
         then:
         payload.name == plainName
@@ -39,11 +39,11 @@ class TemporalDataConverterTest extends Specification {
         !payload.apiKey.contains(plainSecret)
 
         when:
-        GreetingWorkflowInput decoded = dataConverter.fromPayloads(
+        ExampleWorkflowInput decoded = dataConverter.fromPayloads(
                 0,
                 Optional.of(payloads),
-                GreetingWorkflowInput.class,
-                GreetingWorkflowInput.class
+                ExampleWorkflowInput.class,
+                ExampleWorkflowInput.class
         )
 
         then:
@@ -60,14 +60,14 @@ class TemporalDataConverterTest extends Specification {
         given:
         String plainSecret = 'sk_test_nonsecure_check'
         String plainName = 'VisibleName'
-        GreetingWorkflowInput input = new GreetingWorkflowInput(
+        ExampleWorkflowInput input = new ExampleWorkflowInput(
                 plainName,
                 new SecureString(plainSecret.toCharArray())
         )
 
         when:
         Payloads payloads = dataConverter.toPayloads(input).orElseThrow()
-        SerializedGreetingWorkflowInput payload = payloadAsInput(payloads)
+        SerializedExampleWorkflowInput payload = payloadAsInput(payloads)
 
         then:
         payload.name == plainName
@@ -76,12 +76,12 @@ class TemporalDataConverterTest extends Specification {
         !payload.apiKey.contains(plainSecret)
     }
 
-    private SerializedGreetingWorkflowInput payloadAsInput(Payloads payloads) {
+    private SerializedExampleWorkflowInput payloadAsInput(Payloads payloads) {
         String json = payloads.getPayloads(0).getData().toStringUtf8()
-        return objectMapper.readValue(json, SerializedGreetingWorkflowInput.class)
+        return objectMapper.readValue(json, SerializedExampleWorkflowInput.class)
     }
 
-    private static class SerializedGreetingWorkflowInput {
+    private static class SerializedExampleWorkflowInput {
         String name
         String apiKey
     }

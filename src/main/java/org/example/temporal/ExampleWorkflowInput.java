@@ -2,7 +2,7 @@ package org.example.temporal;
 
 import org.example.temporal.codec.SecureString;
 
-public record GreetingWorkflowInput(
+public record ExampleWorkflowInput(
         String name,
         SecureString apiKey
 ) {

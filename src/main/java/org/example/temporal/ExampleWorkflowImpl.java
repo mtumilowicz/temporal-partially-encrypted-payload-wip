@@ -8,7 +8,7 @@ import io.temporal.workflow.Workflow;
 import java.time.Duration;
 
 @TemporalWorkflow(workers = "<default>")
-public class GreetingWorkflowImpl implements GreetingWorkflow {
+public class ExampleWorkflowImpl implements ExampleWorkflow {
 
     private static final RetryOptions ONE_RETRY = RetryOptions.newBuilder()
             .setMaximumAttempts(2)
@@ -31,11 +31,11 @@ public class GreetingWorkflowImpl implements GreetingWorkflow {
     );
 
     @Override
-    public GreetingWorkflowOutput composeGreeting(GreetingWorkflowInput input) {
+    public ExampleWorkflowOutput run(ExampleWorkflowInput input) {
         String newName = nameActivity.generateNewName(input.name());
         RotateResult rotateResult = apiKeyActivity.rotateApiKey(input.apiKey());
 
-        return new GreetingWorkflowOutput(
+        return new ExampleWorkflowOutput(
                 newName,
                 rotateResult
         );

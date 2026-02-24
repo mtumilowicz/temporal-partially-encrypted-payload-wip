@@ -4,8 +4,8 @@ import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
 @WorkflowInterface
-public interface GreetingWorkflow {
+public interface ExampleWorkflow {
 
     @WorkflowMethod
-    GreetingWorkflowOutput composeGreeting(GreetingWorkflowInput input);
+    ExampleWorkflowOutput run(ExampleWorkflowInput input);
 }
