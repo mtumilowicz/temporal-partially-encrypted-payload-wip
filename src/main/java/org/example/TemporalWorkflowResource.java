@@ -35,7 +35,7 @@ public class TemporalWorkflowResource {
         GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class, options);
         GreetingWorkflowInput workflowInput = new GreetingWorkflowInput(
                 request.name(),
-                new SecureString(request.apiKey())
+                new SecureString(request.apiKey().toCharArray())
         );
         WorkflowClient.start(workflow::composeGreeting, workflowInput);
         GreetingWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(GreetingWorkflowOutput.class);
@@ -43,8 +43,8 @@ public class TemporalWorkflowResource {
         return new GreetingWorkflowResponse(
                 request.name(),
                 output.newName(),
-                output.rotateResult().oldApiKey() == null ? null : output.rotateResult().oldApiKey().value(),
-                output.rotateResult().newApiKey() == null ? null : output.rotateResult().newApiKey().value(),
+                output.rotateResult().oldApiKey().asString(),
+                output.rotateResult().newApiKey().asString(),
                 output.rotateResult().date()
         );
     }

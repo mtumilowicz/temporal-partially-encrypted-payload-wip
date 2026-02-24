@@ -11,7 +11,7 @@ public class ApiKeyActivityImpl implements ApiKeyActivity {
 
     @Override
     public RotateResult rotateApiKey(SecureString oldApiKey) {
-        SecureString newApiKey = new SecureString("sk_new_hardcoded_123");
+        SecureString newApiKey = new SecureString("sk_new_hardcoded_123".toCharArray());
         String date = LocalDate.now(ZoneOffset.UTC).toString();
         return new RotateResult(oldApiKey, newApiKey, date);
     }

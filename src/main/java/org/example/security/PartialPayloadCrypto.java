@@ -8,6 +8,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Base64;
 
 @ApplicationScoped
@@ -37,8 +38,17 @@ public class PartialPayloadCrypto {
         if (plainText == null || plainText.isBlank()) {
             return null;
         }
+        return encrypt(plainText.toCharArray());
+    }
+
+    public String encrypt(char[] plainChars) {
+        if (plainChars == null || plainChars.length == 0) {
+            return null;
+        }
         try {
-            byte[] cipherText = aead.encrypt(plainText.getBytes(StandardCharsets.UTF_8), EMPTY_AAD);
+            byte[] plainBytes = new String(plainChars).getBytes(StandardCharsets.UTF_8);
+            byte[] cipherText = aead.encrypt(plainBytes, EMPTY_AAD);
+            Arrays.fill(plainBytes, (byte) 0);
             return PREFIX + Base64.getEncoder().encodeToString(cipherText);
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Failed to encrypt payload field", e);
@@ -46,6 +56,11 @@ public class PartialPayloadCrypto {
     }
 
     public String decrypt(String token) {
+        char[] plain = decryptToChars(token);
+        return plain == null ? null : new String(plain);
+    }
+
+    public char[] decryptToChars(String token) {
         if (token == null || token.isBlank()) {
             return null;
         }
@@ -55,7 +70,9 @@ public class PartialPayloadCrypto {
         try {
             byte[] cipherText = Base64.getDecoder().decode(token.substring(PREFIX.length()));
             byte[] plainBytes = aead.decrypt(cipherText, EMPTY_AAD);
-            return new String(plainBytes, StandardCharsets.UTF_8);
+            char[] chars = new String(plainBytes, StandardCharsets.UTF_8).toCharArray();
+            Arrays.fill(plainBytes, (byte) 0);
+            return chars;
         } catch (IllegalArgumentException | GeneralSecurityException e) {
             throw new IllegalStateException("Failed to decrypt payload field", e);
         }

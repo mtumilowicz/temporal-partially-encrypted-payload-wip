@@ -32,15 +32,7 @@ public class TemporalDataConverterProducer {
         secureModule.addSerializer(SecureString.class, new JsonSerializer<>() {
             @Override
             public void serialize(SecureString value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-                if (value == null || value.value() == null) {
-                    gen.writeNull();
-                    return;
-                }
-                String encrypted = crypto.encrypt(value.value());
-                if (encrypted == null) {
-                    gen.writeNull();
-                    return;
-                }
+                String encrypted = crypto.encrypt(value.chars());
                 gen.writeString(encrypted);
             }
         });
@@ -48,13 +40,10 @@ public class TemporalDataConverterProducer {
             @Override
             public SecureString deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
                 String raw = p.getValueAsString();
-                if (raw == null) {
-                    return new SecureString(null);
-                }
                 if (raw.startsWith(TOKEN_PREFIX)) {
-                    return new SecureString(crypto.decrypt(raw));
+                    return new SecureString(crypto.decryptToChars(raw));
                 }
-                return new SecureString(raw);
+                return new SecureString(raw.toCharArray());
             }
         });
         mapper.registerModule(secureModule);
