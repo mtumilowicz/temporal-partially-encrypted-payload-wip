@@ -26,7 +26,9 @@ class ExampleResourceTest {
                 .body("""
                         {
                           "name": "Temporal",
-                          "repeatCount": 2
+                          "repeatCount": 2,
+                          "apiKey": "sk_test_1234567890",
+                          "includeSensitiveOutput": true
                         }
                         """)
                 .when().post("/temporal/greeting")
@@ -36,7 +38,9 @@ class ExampleResourceTest {
                 .body("runId", notNullValue())
                 .body("name", is("Temporal"))
                 .body("repeatCount", is(2))
-                .body("output", containsString("Hello Temporal #1"));
+                .body("output", containsString("Hello Temporal #1"))
+                .body("apiKeyFingerprint", notNullValue())
+                .body("sensitiveOutputPart", containsString("apiKey.last4=7890"));
     }
 
 }

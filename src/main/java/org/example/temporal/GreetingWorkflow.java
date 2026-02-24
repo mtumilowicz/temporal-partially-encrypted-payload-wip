@@ -7,5 +7,5 @@ import io.temporal.workflow.WorkflowMethod;
 public interface GreetingWorkflow {
 
     @WorkflowMethod
-    String composeGreeting(String name, int repeatCount);
+    GreetingWorkflowOutput composeGreeting(GreetingWorkflowInput input);
 }

@@ -11,6 +11,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.example.temporal.GreetingWorkflow;
+import org.example.temporal.GreetingWorkflowInput;
+import org.example.temporal.GreetingWorkflowOutput;
+import org.example.temporal.codec.SensitiveString;
 
 import java.util.UUID;
 
@@ -25,29 +28,48 @@ public class TemporalWorkflowResource {
     @POST
     @Path("/greeting")
     public GreetingWorkflowResponse startGreetingWorkflow(GreetingWorkflowRequest request) {
-        String name = request != null && request.name() != null ? request.name().trim() : "";
-        if (name.isEmpty()) {
-            name = "world";
-        }
-
-        int repeatCount = request != null ? request.repeatCount() : 1;
-        repeatCount = Math.max(1, Math.min(repeatCount, 5));
-
         WorkflowOptions options = WorkflowOptions.newBuilder()
                 .setTaskQueue("<default>")
                 .setWorkflowId("greeting-" + UUID.randomUUID())
                 .build();
 
         GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class, options);
-        WorkflowExecution execution = WorkflowClient.start(workflow::composeGreeting, name, repeatCount);
-        String output = WorkflowStub.fromTyped(workflow).getResult(String.class);
+        GreetingWorkflowInput workflowInput = new GreetingWorkflowInput(
+                request.name(),
+                request.repeatCount(),
+                new SensitiveString(request.apiKey()),
+                request.includeSensitiveOutput()
+        );
+        WorkflowExecution execution = WorkflowClient.start(workflow::composeGreeting, workflowInput);
+        GreetingWorkflowOutput output = WorkflowStub.fromTyped(workflow).getResult(GreetingWorkflowOutput.class);
 
-        return new GreetingWorkflowResponse(execution.getWorkflowId(), execution.getRunId(), name, repeatCount, output);
+        return new GreetingWorkflowResponse(
+                execution.getWorkflowId(),
+                execution.getRunId(),
+                request.name(),
+                request.repeatCount(),
+                output.output(),
+                output.apiKeyFingerprint(),
+                output.sensitiveOutputPart() == null ? null : output.sensitiveOutputPart().value()
+        );
     }
 
-    public record GreetingWorkflowRequest(String name, int repeatCount) {
+    public record GreetingWorkflowRequest(
+            String name,
+            int repeatCount,
+            String apiKey,
+            boolean includeSensitiveOutput
+    ) {
     }
 
-    public record GreetingWorkflowResponse(String workflowId, String runId, String name, int repeatCount, String output) {
+    public record GreetingWorkflowResponse(
+            String workflowId,
+            String runId,
+            String name,
+            int repeatCount,
+            String output,
+            String apiKeyFingerprint,
+            String sensitiveOutputPart
+    ) {
     }
 }

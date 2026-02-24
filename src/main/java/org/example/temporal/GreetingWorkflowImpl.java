@@ -1,22 +1,36 @@
 package org.example.temporal;
 
 import io.quarkiverse.temporal.TemporalWorkflow;
+import io.temporal.activity.ActivityOptions;
+import io.temporal.workflow.Workflow;
+
+import java.time.Duration;
 
 @TemporalWorkflow(workers = "<default>")
 public class GreetingWorkflowImpl implements GreetingWorkflow {
 
-    @Override
-    public String composeGreeting(String name, int repeatCount) {
-        String normalizedName = (name == null || name.isBlank()) ? "world" : name.trim();
-        int safeRepeatCount = Math.max(1, Math.min(repeatCount, 5));
+    private final GreetingActivity greetingActivity = Workflow.newActivityStub(
+            GreetingActivity.class,
+            ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(5)).build()
+    );
 
-        StringBuilder response = new StringBuilder();
-        for (int i = 1; i <= safeRepeatCount; i++) {
-            if (i > 1) {
-                response.append(" | ");
-            }
-            response.append("Hello ").append(normalizedName).append(" #").append(i);
-        }
-        return response.toString();
+    private final ApiKeyActivity apiKeyActivity = Workflow.newActivityStub(
+            ApiKeyActivity.class,
+            ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(5)).build()
+    );
+
+    @Override
+    public GreetingWorkflowOutput composeGreeting(GreetingWorkflowInput input) {
+        String output = greetingActivity.buildGreeting(input.name(), input.repeatCount());
+        ApiKeyProcessingResult apiKeyResult = apiKeyActivity.processApiKey(
+                input.apiKey(),
+                input.includeSensitiveOutput()
+        );
+
+        return new GreetingWorkflowOutput(
+                output,
+                apiKeyResult.apiKeyFingerprint(),
+                apiKeyResult.sensitiveOutputPart()
+        );
     }
 }
