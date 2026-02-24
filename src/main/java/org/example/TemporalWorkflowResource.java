@@ -9,11 +9,13 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.example.security.AllowUnsafeChars;
 import org.example.temporal.GreetingWorkflow;
 import org.example.temporal.GreetingWorkflowInput;
 import org.example.temporal.GreetingWorkflowOutput;
 import org.example.temporal.codec.SecureString;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 @Path("/temporal")
@@ -43,10 +45,20 @@ public class TemporalWorkflowResource {
         return new GreetingWorkflowResponse(
                 request.name(),
                 output.newName(),
-                new String(output.rotateResult().oldApiKey().unsafeChars()),
-                new String(output.rotateResult().newApiKey().unsafeChars()),
+                toPlainString(output.rotateResult().oldApiKey()),
+                toPlainString(output.rotateResult().newApiKey()),
                 output.rotateResult().date()
         );
+    }
+
+    private static String toPlainString(SecureString secureString) {
+        @AllowUnsafeChars("building plaintext secret for endpoint response contract")
+        char[] chars = secureString.unsafeChars();
+        try {
+            return new String(chars);
+        } finally {
+            Arrays.fill(chars, '\0');
+        }
     }
 
     public record GreetingWorkflowRequest(

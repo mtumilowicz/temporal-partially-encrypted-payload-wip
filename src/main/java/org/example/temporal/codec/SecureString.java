@@ -1,5 +1,8 @@
 package org.example.temporal.codec;
 
+import com.google.errorprone.annotations.RestrictedApi;
+import org.example.security.AllowUnsafeChars;
+
 import java.util.Arrays;
 
 public final class SecureString {
@@ -9,6 +12,11 @@ public final class SecureString {
         this.value = Arrays.copyOf(value, value.length);
     }
 
+    @RestrictedApi(
+            explanation = "Access to secret chars must be explicitly acknowledged via @AllowUnsafeChars",
+            link = "",
+            allowlistAnnotations = {AllowUnsafeChars.class}
+    )
     public char[] unsafeChars() {
         return Arrays.copyOf(value, value.length);
     }

@@ -14,9 +14,11 @@ import io.temporal.common.converter.JacksonJsonPayloadConverter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
+import org.example.security.AllowUnsafeChars;
 import org.example.security.PartialPayloadCrypto;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 @ApplicationScoped
 public class TemporalDataConverterProducer {
@@ -32,7 +34,7 @@ public class TemporalDataConverterProducer {
         secureModule.addSerializer(SecureString.class, new JsonSerializer<>() {
             @Override
             public void serialize(SecureString value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-                String encrypted = crypto.encrypt(value.unsafeChars());
+                String encrypted = encryptSecureString(crypto, value);
                 gen.writeString(encrypted);
             }
         });
@@ -50,5 +52,15 @@ public class TemporalDataConverterProducer {
 
         return DefaultDataConverter.newDefaultInstance()
                 .withPayloadConverterOverrides(new JacksonJsonPayloadConverter(mapper));
+    }
+
+    private static String encryptSecureString(PartialPayloadCrypto crypto, SecureString value) {
+        @AllowUnsafeChars("encrypting secure value before Temporal payload serialization")
+        char[] chars = value.unsafeChars();
+        try {
+            return crypto.encrypt(chars);
+        } finally {
+            Arrays.fill(chars, '\0');
+        }
     }
 }
