@@ -1,14 +1,19 @@
 package org.example;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+import org.example.temporal.UtcTimestampProvider;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class ExampleResourceTest {
+    @InjectMock
+    UtcTimestampProvider utcTimestampProvider;
+
     @Test
     void testHelloEndpoint() {
         given()
@@ -20,6 +25,9 @@ class ExampleResourceTest {
 
     @Test
     void testTemporalGreetingWorkflowEndpoint() {
+        String expectedDate = "2026-02-24T17:15:30.123Z";
+        when(utcTimestampProvider.nowIsoMillis()).thenReturn(expectedDate);
+
         given()
                 .contentType("application/json")
                 .body("""
@@ -35,7 +43,7 @@ class ExampleResourceTest {
                 .body("newName", is("new_name_hardcoded"))
                 .body("oldApiKey", is("sk_test_1234567890"))
                 .body("newApiKey", is("sk_new_hardcoded_123"))
-                .body("date", notNullValue());
+                .body("date", is(expectedDate));
     }
 
 }

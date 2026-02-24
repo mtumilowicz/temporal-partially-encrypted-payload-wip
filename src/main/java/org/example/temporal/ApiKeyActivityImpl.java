@@ -1,18 +1,19 @@
 package org.example.temporal;
 
 import io.quarkiverse.temporal.TemporalActivity;
+import jakarta.inject.Inject;
 import org.example.temporal.codec.SecureString;
-
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 
 @TemporalActivity(workers = "<default>")
 public class ApiKeyActivityImpl implements ApiKeyActivity {
 
+    @Inject
+    UtcTimestampProvider utcTimestampProvider;
+
     @Override
     public RotateResult rotateApiKey(SecureString oldApiKey) {
         SecureString newApiKey = new SecureString("sk_new_hardcoded_123".toCharArray());
-        String date = LocalDate.now(ZoneOffset.UTC).toString();
+        String date = utcTimestampProvider.nowIsoMillis();
         return new RotateResult(oldApiKey, newApiKey, date);
     }
 }
