@@ -14,15 +14,14 @@ dependencies {
     implementation 'io.quarkus:quarkus-arc'
     implementation 'io.quarkus:quarkus-rest'
     implementation 'io.quarkus:quarkus-rest-jackson'
-    implementation 'io.quarkus:quarkus-devservices'
     implementation 'io.quarkiverse.temporal:quarkus-temporal:0.2.2'
     implementation 'com.google.crypto.tink:tink:1.14.1'
     compileOnly 'com.google.errorprone:error_prone_annotations:2.46.0'
     errorprone 'com.google.errorprone:error_prone_core:2.46.0'
     testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkiverse.temporal:quarkus-temporal-test:0.2.2'
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.spockframework:spock-core:2.4-groovy-4.0'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 group = 'org.example'
@@ -49,5 +48,4 @@ tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
 
 tasks.named('test') {
     useJUnitPlatform()
-    exclude '**/*IT.class', '**/*ITCase.class'
 }
