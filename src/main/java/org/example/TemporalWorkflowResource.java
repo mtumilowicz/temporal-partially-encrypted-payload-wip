@@ -36,7 +36,6 @@ public class TemporalWorkflowResource {
         GreetingWorkflow workflow = workflowClient.newWorkflowStub(GreetingWorkflow.class, options);
         GreetingWorkflowInput workflowInput = new GreetingWorkflowInput(
                 request.name(),
-                request.repeatCount(),
                 new SensitiveString(request.apiKey())
         );
         WorkflowExecution execution = WorkflowClient.start(workflow::composeGreeting, workflowInput);
@@ -46,16 +45,13 @@ public class TemporalWorkflowResource {
                 execution.getWorkflowId(),
                 execution.getRunId(),
                 request.name(),
-                request.repeatCount(),
-                output.output(),
-                output.apiKeyFingerprint(),
-                output.sensitiveOutputPart() == null ? null : output.sensitiveOutputPart().value()
+                output.oldApiKey() == null ? null : output.oldApiKey().value(),
+                output.newApiKey() == null ? null : output.newApiKey().value()
         );
     }
 
     public record GreetingWorkflowRequest(
             String name,
-            int repeatCount,
             String apiKey
     ) {
     }
@@ -64,10 +60,8 @@ public class TemporalWorkflowResource {
             String workflowId,
             String runId,
             String name,
-            int repeatCount,
-            String output,
-            String apiKeyFingerprint,
-            String sensitiveOutputPart
+            String oldApiKey,
+            String newApiKey
     ) {
     }
 }
