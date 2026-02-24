@@ -1,11 +1,8 @@
 package org.example.temporal;
 
 import io.quarkiverse.temporal.TemporalActivity;
-import io.temporal.activity.Activity;
 import jakarta.inject.Inject;
 import org.example.temporal.codec.SecureString;
-
-import java.util.UUID;
 
 @TemporalActivity(workers = "<default>")
 public class ApiKeyActivityImpl implements ApiKeyActivity {
@@ -15,10 +12,7 @@ public class ApiKeyActivityImpl implements ApiKeyActivity {
 
     @Override
     public RotateResult rotateApiKey(SecureString oldApiKey) {
-        SecureString newApiKey = new SecureString(
-                "sk_new_hardcoded_123".toCharArray(),
-                UUID.fromString(Activity.getExecutionContext().getInfo().getWorkflowId())
-        );
+        SecureString newApiKey = new SecureString("sk_new_hardcoded_123".toCharArray());
         String date = utcTimestampProvider.nowIsoMillis();
         return new RotateResult(oldApiKey, newApiKey, date);
     }

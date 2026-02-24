@@ -19,7 +19,6 @@ import org.example.security.PartialPayloadCrypto;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.UUID;
 
 @ApplicationScoped
 public class TemporalDataConverterProducer {
@@ -36,29 +35,20 @@ public class TemporalDataConverterProducer {
             @Override
             public void serialize(SecureString value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
                 String encrypted = encryptSecureString(crypto, value);
-                gen.writeStartObject();
-                gen.writeStringField("value", encrypted);
-                gen.writeStringField("workflowId", value.workflowId().toString());
-                gen.writeEndObject();
+                gen.writeString(encrypted);
             }
         });
         secureModule.addDeserializer(SecureString.class, new JsonDeserializer<>() {
             @Override
             public SecureString deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-                SecureStringRaw secureStringRaw = p.readValueAs(SecureStringRaw.class);
-                if (secureStringRaw == null || secureStringRaw.value == null) {
+                String raw = p.getValueAsString();
+                if (raw == null) {
                     throw new IllegalArgumentException("SecureString payload is null");
                 }
-                if (!secureStringRaw.value.startsWith(TOKEN_PREFIX)) {
+                if (!raw.startsWith(TOKEN_PREFIX)) {
                     throw new IllegalArgumentException("SecureString payload is not encrypted");
                 }
-                if (secureStringRaw.workflowId == null) {
-                    throw new IllegalArgumentException("SecureString workflowId is null");
-                }
-                return new SecureString(
-                        crypto.decryptToChars(secureStringRaw.value, secureStringRaw.workflowId),
-                        secureStringRaw.workflowId
-                );
+                return new SecureString(crypto.decryptToChars(raw));
             }
         });
         mapper.registerModule(secureModule);
@@ -71,14 +61,9 @@ public class TemporalDataConverterProducer {
         @AllowUnsafeChars("encrypting secure value before Temporal payload serialization")
         char[] chars = value.unsafeChars();
         try {
-            return crypto.encryptFromChars(chars, value.workflowId());
+            return crypto.encryptFromChars(chars);
         } finally {
             Arrays.fill(chars, '\0');
         }
-    }
-
-    private static class SecureStringRaw {
-        String value;
-        UUID workflowId;
     }
 }

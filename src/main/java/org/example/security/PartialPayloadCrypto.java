@@ -8,14 +8,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Base64;
-import java.util.UUID;
 
 @ApplicationScoped
 public class PartialPayloadCrypto {
 
     private static final String PREFIX = "enc:v1:";
     private static final int KEY_LENGTH_BYTES = 32;
+    private static final byte[] EMPTY_AAD = new byte[0];
 
     private final Aead aead;
 
@@ -33,32 +34,29 @@ public class PartialPayloadCrypto {
         }
     }
 
-    public String encryptFromChars(char[] plainChars, UUID workflowId) {
+    public String encryptFromChars(char[] plainChars) {
         try {
             byte[] plainBytes = new String(plainChars).getBytes(StandardCharsets.UTF_8);
-            byte[] aad = workflowId.toString().getBytes(StandardCharsets.UTF_8);
-            byte[] cipherText = aead.encrypt(plainBytes, aad);
+            byte[] cipherText = aead.encrypt(plainBytes, EMPTY_AAD);
+            Arrays.fill(plainBytes, (byte) 0);
             return PREFIX + Base64.getEncoder().encodeToString(cipherText);
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Failed to encrypt payload field", e);
         }
     }
 
-    public char[] decryptToChars(String token, UUID workflowId) {
+    public char[] decryptToChars(String token) {
         if (!token.startsWith(PREFIX)) {
             throw new IllegalArgumentException("Encrypted field has unexpected format");
         }
         try {
             byte[] cipherText = Base64.getDecoder().decode(token.substring(PREFIX.length()));
-            byte[] aad = workflowId.toString().getBytes(StandardCharsets.UTF_8);
-            byte[] plainBytes = aead.decrypt(cipherText, aad);
-            return new String(plainBytes, StandardCharsets.UTF_8).toCharArray();
+            byte[] plainBytes = aead.decrypt(cipherText, EMPTY_AAD);
+            char[] chars = new String(plainBytes, StandardCharsets.UTF_8).toCharArray();
+            Arrays.fill(plainBytes, (byte) 0);
+            return chars;
         } catch (IllegalArgumentException | GeneralSecurityException e) {
             throw new IllegalStateException("Failed to decrypt payload field", e);
         }
-    }
-
-    public boolean isEncryptedToken(String token) {
-        return token != null && token.startsWith(PREFIX);
     }
 }
