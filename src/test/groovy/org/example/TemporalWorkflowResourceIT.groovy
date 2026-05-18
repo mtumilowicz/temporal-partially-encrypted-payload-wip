@@ -14,7 +14,7 @@ class TemporalWorkflowResourceIT {
     void 'returns example workflow response'() {
         Map body = RestAssured.given()
                 .contentType('application/json')
-                .body('{"name":"Temporal","apiKey":"sk_test_1234567890"}')
+                .body('{"name":"Temporal","apiKey":"sk_test_1_1234567890","parameters":{"secretApiKey":"sk_test_2_1234567890"}}')
                 .when()
                 .post('/temporal/example')
                 .then()
@@ -24,8 +24,11 @@ class TemporalWorkflowResourceIT {
 
         assertEquals('Temporal', body.oldName)
         assertEquals('new_name_hardcoded', body.newName)
-        assertEquals('sk_test_1234567890', body.oldApiKey)
-        assertEquals('sk_new_hardcoded_123', body.newApiKey)
+        assertEquals('sk_test_1_1234567890', body.oldApiKey)
+        assertEquals('sk_test_1_1234567890_rotated', body.newApiKey)
         assertNotNull(body.date)
+        assertEquals('sk_test_2_1234567890', body.oldApiKey2)
+        assertEquals('sk_test_2_1234567890_rotated', body.newApiKey2)
+        assertNotNull(body.date2)
     }
 }
