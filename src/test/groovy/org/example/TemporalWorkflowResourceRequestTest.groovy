@@ -25,7 +25,6 @@ class TemporalWorkflowResourceRequestTest {
                     "apiKey": "sk_test_1234567890",
                     "parameters": {
                         "secretToken": "param_secret",
-                        "secretRetries": 3,
                         "visible": "plain"
                     }
                 }
@@ -35,8 +34,6 @@ class TemporalWorkflowResourceRequestTest {
 
         assertTrue(request.parameters().secretToken instanceof SecureString)
         assertTrue(secureStringEquals(request.parameters().secretToken as SecureString, 'param_secret'))
-        assertFalse(request.parameters().secretRetries instanceof SecureString)
-        assertEquals(3, request.parameters().secretRetries)
         assertEquals('plain', request.parameters().visible)
     }
 
@@ -64,7 +61,7 @@ class TemporalWorkflowResourceRequestTest {
     }
 
     @Test
-    void 'leaves non-textual secret parameters unchanged'() {
+    void 'rejects non-textual secret parameters'() {
         String json = '''
                 {
                     "name": "Temporal",
@@ -77,11 +74,11 @@ class TemporalWorkflowResourceRequestTest {
                 }
                 '''
 
-        TemporalWorkflowResource.ExampleWorkflowRequest request = readRequest(json)
+        Exception e = assertThrows(Exception.class, {
+            readRequest(json)
+        })
 
-        assertEquals(true, request.parameters().secretEnabled)
-        assertEquals(3, request.parameters().secretRetries)
-        assertEquals(['a', 'b'], request.parameters().secretItems)
+        assertTrue(e.message.contains('secret parameters must be strings'))
     }
 
     @Test

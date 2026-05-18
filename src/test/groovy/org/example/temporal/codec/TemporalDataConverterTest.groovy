@@ -70,7 +70,6 @@ class TemporalDataConverterTest {
                         secretApiKey: new SecureString(plainParameterSecret1.toCharArray()),
                         secretToken : new SecureString(plainParameterSecret2.toCharArray()),
                         token       : 'enc:v1:not-a-secret-parameter',
-                        secretCount : 2,
                         visible     : 'plain'
                 ]
         )
@@ -99,8 +98,37 @@ class TemporalDataConverterTest {
         assertTrue(decoded.parameters().secretToken instanceof SecureString)
         assertTrue(secureStringEquals(decoded.parameters().secretToken as SecureString, plainParameterSecret2))
         assertEquals('enc:v1:not-a-secret-parameter', decoded.parameters().token)
-        assertEquals(2, decoded.parameters().secretCount)
         assertEquals('plain', decoded.parameters().visible)
+    }
+
+    @Test
+    void 'decrypts encrypted secret workflow input parameters through shared parameter deserializer'() {
+        String plainApiKey = 'sk_test_shared_deserializer_api_key'
+        String plainParameterSecret = 'sk_test_shared_deserializer_parameter'
+        ExampleWorkflowInput input = new ExampleWorkflowInput(
+                'Temporal',
+                new SecureString(plainApiKey.toCharArray()),
+                [
+                        secretApiKey: new SecureString(plainParameterSecret.toCharArray())
+                ]
+        )
+
+        DataConverter contextDataConverter = dataConverter.withContext(CONTEXT)
+        Payloads payloads = contextDataConverter.toPayloads(input).orElseThrow()
+        String rawPayload = payloadAsJson(payloads)
+
+        assertTrue(rawPayload.contains("\"secretApiKey\":\"${ENCRYPTED_PREFIX}"))
+        assertFalse(rawPayload.contains(plainParameterSecret))
+
+        ExampleWorkflowInput decoded = contextDataConverter.fromPayloads(
+                0,
+                Optional.of(payloads),
+                ExampleWorkflowInput.class,
+                ExampleWorkflowInput.class
+        )
+
+        assertTrue(decoded.parameters().secretApiKey instanceof SecureString)
+        assertTrue(secureStringEquals(decoded.parameters().secretApiKey as SecureString, plainParameterSecret))
     }
 
     @Test

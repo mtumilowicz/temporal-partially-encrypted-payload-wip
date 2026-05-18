@@ -11,6 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SecretParametersDeserializer extends JsonDeserializer<Map<String, Object>> {
+    private static final String TOKEN_PREFIX = "enc:v1:";
+
     @Override
     public Map<String, Object> deserialize(JsonParser parser, DeserializationContext context)
             throws IOException {
@@ -25,12 +27,26 @@ public class SecretParametersDeserializer extends JsonDeserializer<Map<String, O
             String key = property.getKey();
             JsonNode value = property.getValue();
 
-            if (key.startsWith("secret") && value.isTextual()) {
-                parameters.put(key, codec.treeToValue(value, SecureString.class));
+            if (key.startsWith("secret")) {
+                parameters.put(key, secureString(value, codec));
             } else {
                 parameters.put(key, codec.treeToValue(value, Object.class));
             }
         }
         return parameters;
+    }
+
+    protected SecureString secureString(JsonNode value, ObjectCodec codec) {
+        if (!value.isTextual()) {
+            throw new IllegalArgumentException("secret parameters must be strings");
+        }
+        if (value.textValue().startsWith(TOKEN_PREFIX)) {
+            try {
+                return codec.treeToValue(value, SecureString.class);
+            } catch (IOException e) {
+                throw new IllegalArgumentException("encrypted secret parameter is invalid", e);
+            }
+        }
+        return new SecureString(value.textValue().toCharArray());
     }
 }

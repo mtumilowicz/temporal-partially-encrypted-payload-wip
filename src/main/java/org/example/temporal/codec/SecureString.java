@@ -1,6 +1,5 @@
 package org.example.temporal.codec;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.errorprone.annotations.RestrictedApi;
 import org.example.security.AllowUnsafeChars;
 
@@ -11,11 +10,6 @@ public final class SecureString {
 
     public SecureString(char[] value) {
         this.value = Arrays.copyOf(value, value.length);
-    }
-
-    @JsonCreator
-    public SecureString(String value) {
-        this(value.toCharArray());
     }
 
     @RestrictedApi(
