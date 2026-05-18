@@ -10,15 +10,12 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public final class TemporalSecretParametersDeserializer extends JsonDeserializer<Map<String, Object>> {
+public class SecretParametersDeserializer extends JsonDeserializer<Map<String, Object>> {
     @Override
     public Map<String, Object> deserialize(JsonParser parser, DeserializationContext context)
             throws IOException {
         ObjectCodec codec = parser.getCodec();
         JsonNode root = codec.readTree(parser);
-        if (root == null || root.isNull()) {
-            return null;
-        }
         if (!root.isObject()) {
             return context.reportInputMismatch(Map.class, "parameters must be a JSON object");
         }

@@ -1,10 +1,5 @@
 package org.example;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.ObjectCodec;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
@@ -21,11 +16,10 @@ import org.example.security.AllowUnsafeChars;
 import org.example.temporal.ExampleWorkflow;
 import org.example.temporal.ExampleWorkflowInput;
 import org.example.temporal.ExampleWorkflowOutput;
+import org.example.temporal.codec.SecretParametersDeserializer;
 import org.example.temporal.codec.SecureString;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -96,30 +90,5 @@ public class TemporalWorkflowResource {
             String newApiKey2,
             String date2
     ) {
-    }
-
-    static final class SecretParametersDeserializer extends JsonDeserializer<Map<String, Object>> {
-        @Override
-        public Map<String, Object> deserialize(JsonParser parser, DeserializationContext context)
-                throws IOException {
-            ObjectCodec codec = parser.getCodec();
-            JsonNode root = codec.readTree(parser);
-            if (!root.isObject()) {
-                return context.reportInputMismatch(Map.class, "parameters must be a JSON object");
-            }
-
-            Map<String, Object> parameters = new LinkedHashMap<>();
-            for (Map.Entry<String, JsonNode> property : root.properties()) {
-                String key = property.getKey();
-                JsonNode value = property.getValue();
-
-                if (key.startsWith("secret") && value.isTextual()) {
-                    parameters.put(key, new SecureString(value.textValue().toCharArray()));
-                } else {
-                    parameters.put(key, codec.treeToValue(value, Object.class));
-                }
-            }
-            return parameters;
-        }
     }
 }
