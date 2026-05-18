@@ -25,8 +25,6 @@ import java.util.Arrays;
 @ApplicationScoped
 public class TemporalDataConverterProducer {
 
-    private static final String TOKEN_PREFIX = "enc:v1:";
-
     @Produces
     @Singleton
     DataConverter temporalDataConverter(PartialPayloadCrypto crypto) {
@@ -34,7 +32,7 @@ public class TemporalDataConverterProducer {
 
         SimpleModule secureModule = new SimpleModule("temporal-secure-field-encryption");
         secureModule.addSerializer(SecureString.class, new SecureStringSerializer(crypto));
-        secureModule.addDeserializer(SecureString.class, new SecureStringDeserializer(crypto));
+        secureModule.addDeserializer(SecureString.class, new EncryptedSecureStringDeserializer(crypto));
         mapper.registerModule(secureModule);
 
         return DefaultDataConverter.newDefaultInstance()
@@ -83,10 +81,10 @@ public class TemporalDataConverterProducer {
         }
     }
 
-    private static final class SecureStringDeserializer extends JsonDeserializer<SecureString> {
+    private static final class EncryptedSecureStringDeserializer extends JsonDeserializer<SecureString> {
         private final PartialPayloadCrypto crypto;
 
-        private SecureStringDeserializer(PartialPayloadCrypto crypto) {
+        private EncryptedSecureStringDeserializer(PartialPayloadCrypto crypto) {
             this.crypto = crypto;
         }
 
@@ -95,9 +93,6 @@ public class TemporalDataConverterProducer {
             String raw = p.getValueAsString();
             if (raw == null) {
                 throw new IllegalArgumentException("SecureString payload is null");
-            }
-            if (!raw.startsWith(TOKEN_PREFIX)) {
-                throw new IllegalArgumentException("SecureString payload is not encrypted");
             }
             return new SecureString(crypto.decryptToChars(raw, buildAad()));
         }
