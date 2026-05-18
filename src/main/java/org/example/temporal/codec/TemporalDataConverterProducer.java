@@ -1,9 +1,11 @@
 package org.example.temporal.codec;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -17,10 +19,13 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 import org.example.security.AllowUnsafeChars;
 import org.example.security.PartialPayloadCrypto;
+import org.example.temporal.ExampleWorkflowInput;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @ApplicationScoped
 public class TemporalDataConverterProducer {
@@ -35,6 +40,7 @@ public class TemporalDataConverterProducer {
         SimpleModule secureModule = new SimpleModule("temporal-secure-field-encryption");
         secureModule.addSerializer(SecureString.class, new SecureStringSerializer(crypto));
         secureModule.addDeserializer(SecureString.class, new SecureStringDeserializer(crypto));
+        secureModule.addDeserializer(ExampleWorkflowInput.class, new ExampleWorkflowInputDeserializer());
         mapper.registerModule(secureModule);
 
         return DefaultDataConverter.newDefaultInstance()
@@ -100,6 +106,37 @@ public class TemporalDataConverterProducer {
                 throw new IllegalArgumentException("SecureString payload is not encrypted");
             }
             return new SecureString(crypto.decryptToChars(raw, buildAad()));
+        }
+    }
+
+    private static final class ExampleWorkflowInputDeserializer extends JsonDeserializer<ExampleWorkflowInput> {
+        @Override
+        public ExampleWorkflowInput deserialize(JsonParser parser, DeserializationContext context)
+                throws IOException {
+            ObjectCodec codec = parser.getCodec();
+            JsonNode root = codec.readTree(parser);
+            Map<String, Object> parameters = null;
+            JsonNode parametersNode = root.get("parameters");
+
+            if (parametersNode != null && !parametersNode.isNull()) {
+                parameters = new LinkedHashMap<>();
+                for (Map.Entry<String, JsonNode> property : parametersNode.properties()) {
+                    String key = property.getKey();
+                    JsonNode value = property.getValue();
+
+                    if (key.startsWith("secret") && value.isTextual()) {
+                        parameters.put(key, codec.treeToValue(value, SecureString.class));
+                    } else {
+                        parameters.put(key, codec.treeToValue(value, Object.class));
+                    }
+                }
+            }
+
+            return new ExampleWorkflowInput(
+                    root.get("name").asText(),
+                    codec.treeToValue(root.get("apiKey"), SecureString.class),
+                    parameters
+            );
         }
     }
 }

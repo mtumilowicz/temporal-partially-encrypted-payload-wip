@@ -59,9 +59,12 @@ public class TemporalWorkflowResource {
         return new ExampleWorkflowResponse(
                 request.name(),
                 output.newName(),
-                toPlainString(output.rotateResult().oldApiKey()),
-                toPlainString(output.rotateResult().newApiKey()),
-                output.rotateResult().date()
+                toPlainString(output.rotateResult1().oldApiKey()),
+                toPlainString(output.rotateResult1().newApiKey()),
+                output.rotateResult1().date(),
+                toPlainString(output.rotateResult2().oldApiKey()),
+                toPlainString(output.rotateResult2().newApiKey()),
+                output.rotateResult2().date()
         );
     }
 
@@ -88,7 +91,10 @@ public class TemporalWorkflowResource {
             String newName,
             String oldApiKey,
             String newApiKey,
-            String date
+            String date,
+            String oldApiKey2,
+            String newApiKey2,
+            String date2
     ) {
     }
 
