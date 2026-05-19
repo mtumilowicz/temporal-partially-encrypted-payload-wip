@@ -31,8 +31,8 @@ public class TemporalDataConverterProducer {
         ObjectMapper mapper = JacksonJsonPayloadConverter.newDefaultObjectMapper();
 
         SimpleModule secureModule = new SimpleModule("temporal-secure-field-encryption");
-        secureModule.addSerializer(SecureString.class, new SecureStringSerializer(crypto));
-        secureModule.addDeserializer(SecureString.class, new EncryptedSecureStringDeserializer(crypto));
+        secureModule.addSerializer(SecureString.class, new EncryptingSecureStringSerializer(crypto));
+        secureModule.addDeserializer(SecureString.class, new DecryptingSecureStringDeserializer(crypto));
         mapper.registerModule(secureModule);
 
         return DefaultDataConverter.newDefaultInstance()
@@ -68,10 +68,10 @@ public class TemporalDataConverterProducer {
         return ("ns=" + namespace + "\nwid=" + workflowId).getBytes(StandardCharsets.UTF_8);
     }
 
-    private static final class SecureStringSerializer extends JsonSerializer<SecureString> {
+    private static final class EncryptingSecureStringSerializer extends JsonSerializer<SecureString> {
         private final PartialPayloadCrypto crypto;
 
-        private SecureStringSerializer(PartialPayloadCrypto crypto) {
+        private EncryptingSecureStringSerializer(PartialPayloadCrypto crypto) {
             this.crypto = crypto;
         }
 
@@ -81,10 +81,10 @@ public class TemporalDataConverterProducer {
         }
     }
 
-    private static final class EncryptedSecureStringDeserializer extends JsonDeserializer<SecureString> {
+    private static final class DecryptingSecureStringDeserializer extends JsonDeserializer<SecureString> {
         private final PartialPayloadCrypto crypto;
 
-        private EncryptedSecureStringDeserializer(PartialPayloadCrypto crypto) {
+        private DecryptingSecureStringDeserializer(PartialPayloadCrypto crypto) {
             this.crypto = crypto;
         }
 
