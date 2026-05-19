@@ -190,7 +190,8 @@ class TemporalDataConverterTest {
                         new SecureString(plainOldSecret2.toCharArray()),
                         new SecureString(plainNewSecret2.toCharArray()),
                         '2026-05-18T10:16:30.000Z'
-                )
+                ),
+                'enc:v1:already-encrypted-from-parameters'
         )
 
         DataConverter contextDataConverter = dataConverter.withContext(CONTEXT)
@@ -199,6 +200,7 @@ class TemporalDataConverterTest {
 
         assertTrue(rawPayload.contains('"rotateResult1"'))
         assertTrue(rawPayload.contains('"rotateResult2"'))
+        assertTrue(rawPayload.contains('"encryptedApiKeyFromParameters":"enc:v1:already-encrypted-from-parameters"'))
         assertTrue(rawPayload.contains("\"oldApiKey\":\"${ENCRYPTED_PREFIX}"))
         assertTrue(rawPayload.contains("\"newApiKey\":\"${ENCRYPTED_PREFIX}"))
         assertFalse(rawPayload.contains(plainOldSecret1))
@@ -220,6 +222,7 @@ class TemporalDataConverterTest {
         assertTrue(secureStringEquals(decoded.rotateResult2().oldApiKey(), plainOldSecret2))
         assertTrue(secureStringEquals(decoded.rotateResult2().newApiKey(), plainNewSecret2))
         assertEquals(output.rotateResult2().date(), decoded.rotateResult2().date())
+        assertEquals(output.encryptedApiKeyFromParameters(), decoded.encryptedApiKeyFromParameters())
     }
 
     private static String payloadAsJson(Payloads payloads) {

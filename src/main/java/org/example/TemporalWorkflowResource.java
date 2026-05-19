@@ -58,7 +58,8 @@ public class TemporalWorkflowResource {
                 output.rotateResult1().date(),
                 toPlainString(output.rotateResult2().oldApiKey()),
                 toPlainString(output.rotateResult2().newApiKey()),
-                output.rotateResult2().date()
+                output.rotateResult2().date(),
+                output.encryptedApiKeyFromParameters()
         );
     }
 
@@ -88,7 +89,8 @@ public class TemporalWorkflowResource {
             String date,
             String oldApiKey2,
             String newApiKey2,
-            String date2
+            String date2,
+            String encryptedApiKeyFromParameters
     ) {
     }
 }

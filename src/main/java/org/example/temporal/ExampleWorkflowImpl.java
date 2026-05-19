@@ -35,11 +35,13 @@ public class ExampleWorkflowImpl implements ExampleWorkflow {
         String newName = nameActivity.generateNewName(input.name());
         RotateResult rotateResult1 = apiKeyActivity.rotateApiKey(input.apiKey());
         RotateResult rotateResult2 = apiKeyActivity.rotateApiKey((SecureString) input.parameters().get("secretApiKey"));
+        String encryptedApiKeyFromParameters = apiKeyActivity.encryptedApiKeyFromParameters(input.parameters());
 
         return new ExampleWorkflowOutput(
                 newName,
                 rotateResult1,
-                rotateResult2
+                rotateResult2,
+                encryptedApiKeyFromParameters
         );
     }
 }

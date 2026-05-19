@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 @QuarkusTest
 class TemporalWorkflowResourceIT {
@@ -30,5 +31,6 @@ class TemporalWorkflowResourceIT {
         assertEquals('sk_test_2_1234567890', body.oldApiKey2)
         assertEquals('sk_test_2_1234567890_rotated', body.newApiKey2)
         assertNotNull(body.date2)
+        assertTrue((body.encryptedApiKeyFromParameters as String).startsWith('enc:v1:'))
     }
 }

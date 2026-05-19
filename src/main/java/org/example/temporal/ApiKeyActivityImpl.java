@@ -6,6 +6,7 @@ import org.example.security.AllowUnsafeChars;
 import org.example.temporal.codec.SecureString;
 
 import java.util.Arrays;
+import java.util.Map;
 
 public class ApiKeyActivityImpl implements ApiKeyActivity {
 
@@ -17,6 +18,11 @@ public class ApiKeyActivityImpl implements ApiKeyActivity {
         SecureString newApiKey = rotatedApiKey(oldApiKey);
         String date = utcTimestampProvider.nowIsoMillis();
         return new RotateResult(oldApiKey, newApiKey, date);
+    }
+
+    @Override
+    public String encryptedApiKeyFromParameters(Map<String, Object> parameters) {
+        return (String) parameters.get("secretApiKey");
     }
 
     private static SecureString rotatedApiKey(SecureString oldApiKey) {
