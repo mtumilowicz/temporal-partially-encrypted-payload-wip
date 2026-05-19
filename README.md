@@ -1,4 +1,4 @@
-# temporal-partially-encrypted-payload-wip
+# temporal-partially-encrypted-payload-workshop
 
   * references
     * https://docs.temporal.io/

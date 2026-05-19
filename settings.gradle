@@ -8,4 +8,4 @@ pluginManagement {
         id "${quarkusPluginId}" version "${quarkusPluginVersion}"
     }
 }
-rootProject.name = 'temporal-partially-encrypted-payload-wip'
+rootProject.name = 'temporal-partially-encrypted-payload-workshop'
