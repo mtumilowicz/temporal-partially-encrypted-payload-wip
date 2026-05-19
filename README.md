@@ -64,6 +64,398 @@ Consequences:
   2. copying an encrypted field from one workflow payload to another workflow should not decrypt
   3. non-secret fields remain readable in Temporal payload JSON
 
+# google tink
+
+## overview
+
+  * Google Tink is a cryptographic library created to make common cryptographic
+    tasks safer to use from application code
+  * main idea:
+    * application should work with high-level cryptographic primitives
+    * application should not manually combine low-level cryptographic blocks
+    * application should not decide details like:
+      * how to generate nonces / IVs
+      * how to append authentication tags
+      * how to encode ciphertext
+      * how to safely rotate keys
+      * how to choose algorithm parameters for common cases
+  * Tink exposes cryptography through primitives
+    * primitive = interface with a concrete security purpose
+    * examples:
+      * `Aead` - authenticated encryption with associated data
+      * `DeterministicAead` - deterministic authenticated encryption
+      * `Mac` - message authentication code
+      * `HybridEncrypt` / `HybridDecrypt` - public key encryption
+      * `StreamingAead` - authenticated encryption for large streams
+  * Tink tries to reduce cryptographic misuse
+    * it gives small APIs
+    * it hides dangerous low-level details
+    * it encourages keysets and rotation instead of one hardcoded forever-key
+    * it separates the application problem from cryptographic construction details
+
+## why Tink
+
+  1. cryptography is easy to use incorrectly
+     * AES alone is not enough information
+     * we also need mode, nonce handling, authentication, encoding, key lifecycle,
+       rotation, limits
+     * many failures come from using a correct algorithm in an incorrect way
+  2. application usually needs a security property, not a low-level algorithm
+     * "encrypt this field and detect tampering"
+     * "sign this data"
+     * "verify that this data was not modified"
+     * "encrypt with public key and decrypt with private key"
+  3. Tink maps those needs to primitives
+     * `Aead` for normal authenticated encryption
+     * `Mac` for integrity without confidentiality
+     * `HybridEncrypt` for public-key encryption
+  4. Tink supports key management concepts
+     * keysets
+     * primary keys
+     * old keys kept for decryption
+     * encrypted keysets protected by KMS
+     * key rotation
+
+## basic structures
+
+  1. primitive
+     * main interface used by application code
+     * answers the question: what operation do we need?
+     * example:
+
+       ```java
+       Aead aead = ...;
+
+       byte[] ciphertext = aead.encrypt(plaintext, associatedData);
+       byte[] decrypted = aead.decrypt(ciphertext, associatedData);
+       ```
+
+     * application code does not manually:
+       * generate IV
+       * append tag
+       * verify tag
+       * split encrypted bytes into internal parts
+  2. key
+     * cryptographic secret material used by a primitive
+     * example:
+       * AES-GCM key for `Aead`
+       * HMAC key for `Mac`
+     * should not be logged
+     * should not be committed to git
+     * should not be copied around as normal configuration in production
+  3. keyset
+     * collection of keys for one primitive
+     * usually contains:
+       * one primary key
+       * zero or more older keys
+     * primary key is used for new encryption
+     * older keys may still be used for decryption
+     * this is useful for rotation:
+       * new payloads are encrypted with a new key
+       * old payloads remain decryptable
+  4. keyset handle
+     * object that gives application access to primitives
+     * application normally asks the keyset handle for a primitive:
+
+       ```java
+       Aead aead = keysetHandle.getPrimitive(Aead.class);
+       ```
+
+     * code works with `Aead`, not directly with raw key bytes
+  5. key status
+     * keys can have status such as enabled or disabled
+     * disabled keys should not be used
+     * this helps with rotation and key retirement
+  6. output prefix / key id
+     * Tink ciphertext may contain information that helps choose the right key from
+       a keyset
+     * useful when many keys are available for decryption
+     * application usually should not parse cryptographic wire format by hand
+  7. KMS
+     * key management system
+     * used to protect Tink keysets
+     * examples:
+       * Google Cloud KMS
+       * AWS KMS
+       * HashiCorp Vault
+     * common pattern:
+       * data encryption key is managed by Tink
+       * Tink keyset is encrypted by a KMS key
+       * application loads encrypted keyset
+       * KMS unwraps it at runtime
+
+## primitive: AEAD
+
+  * AEAD = authenticated encryption with associated data
+  * it provides:
+    * confidentiality
+      * plaintext is hidden
+    * authenticity
+      * ciphertext cannot be changed without detection
+    * symmetric encryption
+      * same key is used for encryption and decryption
+    * randomized encryption
+      * encrypting the same plaintext twice usually gives different ciphertexts
+
+Example:
+
+```java
+byte[] plaintext = "sk_test_1234567890".getBytes(StandardCharsets.UTF_8);
+byte[] aad = "workflow-context".getBytes(StandardCharsets.UTF_8);
+
+byte[] ciphertext = aead.encrypt(plaintext, aad);
+byte[] decrypted = aead.decrypt(ciphertext, aad);
+```
+
+Important consequence:
+
+  * same plaintext + same key does not mean same ciphertext
+  * AEAD encryption is randomized
+  * this hides equality between encrypted values
+
+Example:
+
+```text
+plaintext: sk_test_1234567890
+ciphertext 1: 8Mf3...
+ciphertext 2: Yw21...
+ciphertext 3: I9aQ...
+```
+
+All three ciphertexts can decrypt to the same plaintext, but an observer cannot
+simply compare ciphertext strings to know that.
+
+## AEAD inputs
+
+  * encryption input:
+
+    ```text
+    plaintext + key + associated data -> ciphertext
+    ```
+
+  * decryption input:
+
+    ```text
+    ciphertext + same key + same associated data -> plaintext
+    ```
+
+  * decryption fails when:
+    * ciphertext was modified
+    * wrong key is used
+    * wrong associated data is used
+    * ciphertext format is invalid
+
+## associated data
+
+  * associated data is extra context authenticated together with ciphertext
+  * associated data is not encrypted
+  * associated data can be public
+  * associated data must be exactly the same during encryption and decryption
+  * if associated data changes, authentication fails
+
+Example:
+
+```java
+byte[] aad1 = "user-id=100".getBytes(StandardCharsets.UTF_8);
+byte[] aad2 = "user-id=200".getBytes(StandardCharsets.UTF_8);
+
+byte[] ciphertext = aead.encrypt(secretBytes, aad1);
+
+aead.decrypt(ciphertext, aad1); // works
+aead.decrypt(ciphertext, aad2); // fails
+```
+
+This is useful when ciphertext should belong to a specific context.
+
+Example:
+
+  * encrypted medical history should belong to one user id
+  * encrypted api key should belong to one workflow id
+  * encrypted tenant secret should belong to one tenant id
+
+The associated data is not secret. Its job is not to hide the namespace or workflow
+id. Its job is to authenticate the context. If someone copies an encrypted api key
+from one workflow payload into another workflow payload, the ciphertext is now paired
+with different associated data, so Tink rejects it during decryption.
+
+## Tink in this project
+
+  * this project uses Tink for partial Temporal payload encryption
+  * important class:
+    * `PartialPayloadCrypto`
+  * important primitive:
+    * `Aead`
+  * current implementation:
+    * reads base64 key from `application.properties`
+    * validates that decoded key has 32 bytes
+    * creates AES-GCM based AEAD
+    * encrypts only values represented as `SecureString`
+  * token format:
+
+    ```text
+    enc:v1:<base64-aes-gcm-ciphertext>
+    ```
+
+  * example payload before encryption:
+
+    ```json
+    {
+      "name": "Temporal",
+      "apiKey": "sk_test_1234567890",
+      "parameters": {
+        "source": "curl",
+        "secretToken": "param_secret"
+      }
+    }
+    ```
+
+  * example payload shape after encryption:
+
+    ```json
+    {
+      "name": "Temporal",
+      "apiKey": "enc:v1:...",
+      "parameters": {
+        "source": "curl",
+        "secretToken": "enc:v1:..."
+      }
+    }
+    ```
+
+  * fields left readable:
+    * `name`
+    * `parameters.source`
+    * workflow metadata
+  * fields encrypted:
+    * `apiKey`
+    * textual top-level parameters whose key starts with `secret`
+
+## Temporal context as associated data
+
+  * this project does not encrypt `SecureString` values in isolation
+  * encrypted values are bound to Temporal serialization context
+  * associated data is built from:
+    * namespace
+    * workflow id
+
+Format:
+
+```text
+ns=<namespace>
+wid=<workflowId>
+```
+
+Example:
+
+```text
+ns=default
+wid=example-8f5f0e2a-4a42-43d8-a9a6-8bb5d0c5c412
+```
+
+Consequences:
+
+  1. same secret in two workflows gets different ciphertext
+     * AEAD is randomized
+     * workflow id is also different
+  2. copied ciphertext should not decrypt in another workflow
+     * associated data differs
+     * authentication check fails
+  3. namespace becomes part of the authenticated boundary
+     * ciphertext from another namespace should not decrypt
+  4. Temporal UI can still show non-secret JSON
+     * only selected fields become `enc:v1:...`
+
+## encryption path
+
+  1. REST request is deserialized
+     * `apiKey` becomes `SecureString`
+     * selected parameters become `SecureString`
+  2. workflow is started
+  3. Temporal serializes workflow input
+  4. custom Jackson serializer sees `SecureString`
+  5. serializer asks for current Temporal serialization context
+  6. namespace and workflow id are converted to associated data
+  7. Tink encrypts secret bytes using AEAD
+  8. encrypted bytes are base64 encoded
+  9. JSON field is written as `enc:v1:...`
+
+Simplified code:
+
+```java
+String aadText = "ns=" + namespace + "\nwid=" + workflowId;
+byte[] aad = aadText.getBytes(StandardCharsets.UTF_8);
+
+byte[] ciphertext = aead.encrypt(plainBytes, aad);
+
+String token = "enc:v1:" + Base64.getEncoder().encodeToString(ciphertext);
+```
+
+## decryption path
+
+  1. Temporal deserializes workflow input / output / activity argument
+  2. custom Jackson deserializer sees target type `SecureString`
+  3. value must start with `enc:v1:`
+  4. ciphertext is base64 decoded
+  5. namespace and workflow id are rebuilt from Temporal context
+  6. Tink tries to decrypt using the same associated data
+  7. if authentication succeeds, plaintext becomes a new `SecureString`
+  8. if authentication fails, deserialization fails
+
+Simplified code:
+
+```java
+if (!token.startsWith("enc:v1:")) {
+    throw new IllegalArgumentException("Encrypted field has unexpected format");
+}
+
+byte[] ciphertext = Base64.getDecoder().decode(token.substring("enc:v1:".length()));
+
+String aadText = "ns=" + namespace + "\nwid=" + workflowId;
+byte[] aad = aadText.getBytes(StandardCharsets.UTF_8);
+
+byte[] plainBytes = aead.decrypt(ciphertext, aad);
+```
+
+## why partial encryption
+
+  * encrypting the whole Temporal payload is simple but inconvenient
+    * Temporal UI becomes less useful
+    * debugging becomes harder
+    * non-secret workflow state is hidden
+  * leaving everything as JSON is convenient but unsafe
+    * api keys are stored in workflow history
+    * secrets may appear in logs or UI
+  * partial encryption is a compromise
+    * secret fields are encrypted
+    * ordinary fields stay readable
+    * encryption is explicit through type modeling
+    * `SecureString` marks values that need protection
+
+## production notes
+
+  * current project is workshop-oriented
+  * current key management is intentionally simple
+  * development key is stored in `application.properties`
+  * production version should use stronger key management:
+    * encrypted Tink keysets
+    * KMS-protected key encryption keys
+    * explicit key ids
+    * key rotation
+    * old-key support for Temporal history replay
+
+Possible future token format:
+
+```text
+enc:v2:<key-id>:<base64-ciphertext>
+```
+
+Why key id matters:
+
+  * Temporal histories may live longer than one key version
+  * worker may need to replay old workflow history
+  * old payloads must remain decryptable after rotation
+  * new payloads should use the newest key
+
 # modules
 
   * `TemporalWorkflowResource`
