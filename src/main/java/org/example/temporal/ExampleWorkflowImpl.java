@@ -8,7 +8,6 @@ import org.example.temporal.codec.SecureString;
 
 import java.time.Duration;
 
-@TemporalWorkflow(workers = "<default>")
 public class ExampleWorkflowImpl implements ExampleWorkflow {
 
     private static final RetryOptions ONE_RETRY = RetryOptions.newBuilder()

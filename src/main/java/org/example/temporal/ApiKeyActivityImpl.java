@@ -7,7 +7,6 @@ import org.example.temporal.codec.SecureString;
 
 import java.util.Arrays;
 
-@TemporalActivity(workers = "<default>")
 public class ApiKeyActivityImpl implements ApiKeyActivity {
 
     @Inject
